@@ -53,6 +53,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useUsers } from "@/context/users";
 
 export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,7 +62,6 @@ export default function UserManagement() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [users, setUsers] = useState([]);
   const [addUserButtonLoading, setAddUserButtonLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [previousPageDisabled, setPreviousPageDisabled] = useState(true);
@@ -73,13 +73,15 @@ export default function UserManagement() {
   const [userToDelete, setUserToDelete] = useState<any>({});
   const [suspendUserButtonLoading, setSuspendUserButtonLoading] =
     useState(false);
+  const [deleteUserButtonLoading, setDeleteUserButtonLoading] = useState(false);
+  const usersContext = useUsers();
 
   const [date, setDate] = useState<DateRange | undefined>({
     from: new Date(),
     to: addDays(new Date(), 20),
   });
 
-  const filteredUsers = users.filter(
+  const filteredUsers = usersContext.users.filter(
     (user: any) =>
       user.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.profileName?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -116,10 +118,17 @@ export default function UserManagement() {
     }
   };
 
-  const deleteUserHandler = (authId: string) => {
-    axios.post("/api/deleteUser", { authId: authId }).then((responese) => {
-      return console.log("delete user");
-    });
+  const deleteUserHandler = async (authId: string) => {
+    setDeleteUserButtonLoading(true);
+    const response = await axios.post("/api/deleteUser", { authId: authId });
+
+    if (response.status === 500) {
+      return toast.error(response.data);
+    } else {
+      console.log("delete user");
+      setDeleteUserButtonLoading(false);
+      return toast.success("User deleted successfully! 🗑️");
+    }
   };
 
   const suspendUserHandler = async () => {
@@ -195,7 +204,7 @@ export default function UserManagement() {
 
   useEffect(() => {
     const setAllUsers = async () => {
-      const allUsers = await getAllUsers();
+      const allUsers = usersContext.users;
       let paginatedUsers: any = {};
       if (allUsers.length > 20) {
         setNextPageDisabled(false);
@@ -213,7 +222,6 @@ export default function UserManagement() {
         setNextPageDisabled(true);
         setPaginatedUsers({ 1: allUsers });
       }
-      setUsers(allUsers);
     };
     setAllUsers();
   }, []);
@@ -256,14 +264,18 @@ export default function UserManagement() {
               >
                 Cancel
               </Button>
-              <Button
-                variant={"destructive"}
-                onClick={() => {
-                  deleteUserHandler(userToDelete.Auth);
-                }}
-              >
-                Confirm
-              </Button>
+              {deleteUserButtonLoading ? (
+                <LoadingSpinner />
+              ) : (
+                <Button
+                  variant={"destructive"}
+                  onClick={() => {
+                    deleteUserHandler(userToDelete.Auth);
+                  }}
+                >
+                  Confirm
+                </Button>
+              )}
             </div>
           </DialogHeader>
         </DialogContent>
@@ -430,28 +442,28 @@ export default function UserManagement() {
                   <TableCell>{user.profileName}</TableCell>
                   <TableCell>{user.premiumUser ? "Premium" : "Free"}</TableCell>
                   <TableCell>
-                    {/* <div className="flex flex-wrap gap-2"> */}
-                    <Button
-                      onClick={() => {
-                        setUserToSuspend(user);
-                        setSuspendUserIsOpen(!suspendUserIsOpen);
-                      }}
-                      variant={"destructive"}
-                      size="sm"
-                    >
-                      Suspend
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setUserToDelete(user);
-                        setDeleteUserIsOpen(true);
-                      }}
-                      variant="destructive"
-                      size="sm"
-                    >
-                      Delete
-                    </Button>
-                    {/* </div> */}
+                    <div className="flex flex-wrap gap-4">
+                      <Button
+                        onClick={() => {
+                          setUserToSuspend(user);
+                          setSuspendUserIsOpen(!suspendUserIsOpen);
+                        }}
+                        variant={"destructive"}
+                        size="sm"
+                      >
+                        Suspend
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setUserToDelete(user);
+                          setDeleteUserIsOpen(true);
+                        }}
+                        variant="destructive"
+                        size="sm"
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

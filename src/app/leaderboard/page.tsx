@@ -51,6 +51,7 @@ import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
 import { LoadingSpinner } from "@/components/loader";
+import { useUsers } from "@/context/users";
 
 // Mock leaderboard data
 const leaderboardEntries = [
@@ -72,13 +73,14 @@ export default function LeaderboardManagement() {
   const [page, setPage] = useState<number>(1);
   const [previousPageDisabled, setPreviousPageDisabled] = useState(true);
   const [nextPageDisabled, setNextPageDisabled] = useState(false);
-  let rank = 0;
   const [suspendUserIsOpen, setSuspendUserIsOpen] = useState(false);
   const [deleteUserIsOpen, setDeleteUserIsOpen] = useState(false);
   const [userToSuspend, setUserToSuspend] = useState<any>({});
   const [userToDelete, setUserToDelete] = useState<any>({});
   const [suspendUserButtonLoading, setSuspendUserButtonLoading] =
     useState(false);
+  const [deleteUserButtonLoading, setDeleteUserButtonLoading] = useState(false);
+  const { users } = useUsers();
 
   const [date, setDate] = useState<DateRange | undefined>({
     from: new Date(),
@@ -134,10 +136,25 @@ export default function LeaderboardManagement() {
     return paginatedLeaderboard[page];
   };
 
-  const deleteUserHandler = (authId: string) => {
-    axios.post("/api/deleteUser", { authId: authId }).then((responese) => {
-      return console.log("delete user");
-    });
+  const deleteUserHandler = async (authId: string) => {
+    setDeleteUserButtonLoading(true);
+    const response = await axios.post("/api/deleteUser", { authId: authId });
+
+    if (response.status === 500) {
+      return toast.error(response.data);
+    } else {
+      console.log("delete user");
+      setDeleteUserButtonLoading(false);
+      return toast.success("User deleted successfully! 🗑️");
+    }
+  };
+
+  const filterUserToSuspend = (userName: string) => {
+    setUserToSuspend(users.find((user) => user.userName === userName));
+  };
+
+  const filterUserToDelete = (userName: string) => {
+    setUserToDelete(users.find((user) => user.userName === userName));
   };
 
   const suspendUserHandler = async () => {
@@ -167,30 +184,30 @@ export default function LeaderboardManagement() {
   };
 
   useEffect(() => {
-    const setAllUsers = async () => {
+    const setAllLeaderboard = async () => {
       let allLeaderboard = await getLeaderboard();
       allLeaderboard = allLeaderboard.map((item: any, index: number) => {
         return { ...item, rank: (index += 1) };
       });
-      let paginatedUsers: any = {};
+      let arg_leaderboard: any = {};
       if (allLeaderboard.length > 20) {
         setNextPageDisabled(false);
         let page = 1;
         const chunkSize = 20;
         for (let i = 0; i < allLeaderboard.length; i += chunkSize) {
           const chunk = allLeaderboard.slice(i, i + chunkSize);
-          paginatedUsers[page] = chunk;
+          arg_leaderboard[page] = chunk;
           page++;
         }
-        console.log(paginatedUsers);
-        setPaginatedLeaderboard(paginatedUsers);
+        console.log(arg_leaderboard);
+        setPaginatedLeaderboard(arg_leaderboard);
       } else {
         setNextPageDisabled(true);
         setPaginatedLeaderboard({ 1: allLeaderboard });
       }
       setLeaderboard(allLeaderboard);
     };
-    setAllUsers();
+    setAllLeaderboard();
   }, []);
 
   return (
@@ -225,14 +242,18 @@ export default function LeaderboardManagement() {
               >
                 Cancel
               </Button>
-              <Button
-                variant={"destructive"}
-                onClick={() => {
-                  deleteUserHandler(userToDelete.Auth);
-                }}
-              >
-                Confirm
-              </Button>
+              {deleteUserButtonLoading ? (
+                <LoadingSpinner />
+              ) : (
+                <Button
+                  variant={"destructive"}
+                  onClick={() => {
+                    deleteUserHandler(userToDelete.Auth);
+                  }}
+                >
+                  Confirm
+                </Button>
+              )}
             </div>
           </DialogHeader>
         </DialogContent>
@@ -326,12 +347,13 @@ export default function LeaderboardManagement() {
               <TableRow key={entry.id}>
                 <TableCell>{entry.rank}</TableCell>
                 <TableCell>{entry.User.userName}</TableCell>
-                <TableCell>{entry.score}</TableCell>
-                <TableCell>{entry.lastUpdated}</TableCell>
+                <TableCell>{entry.gameLevel}</TableCell>
+                <TableCell>{entry.gameBalance}</TableCell>
                 <TableCell>
                   <Button
                     onClick={() => {
-                      setUserToSuspend(entry);
+                      filterUserToSuspend(entry.User.userName);
+                      console.log(entry);
                       setSuspendUserIsOpen(!suspendUserIsOpen);
                     }}
                     variant={"destructive"}
@@ -342,7 +364,7 @@ export default function LeaderboardManagement() {
                   </Button>
                   <Button
                     onClick={() => {
-                      setUserToDelete(entry);
+                      filterUserToDelete(entry.User.userName);
                       setDeleteUserIsOpen(true);
                     }}
                     variant="destructive"
@@ -365,7 +387,8 @@ export default function LeaderboardManagement() {
                   <TableCell>
                     <Button
                       onClick={() => {
-                        setUserToSuspend(entry);
+                        filterUserToSuspend(entry.User.userName);
+                        console.log(entry);
                         setSuspendUserIsOpen(!suspendUserIsOpen);
                       }}
                       variant={"destructive"}
@@ -376,7 +399,7 @@ export default function LeaderboardManagement() {
                     </Button>
                     <Button
                       onClick={() => {
-                        setUserToDelete(entry);
+                        filterUserToDelete(entry.User.userName);
                         setDeleteUserIsOpen(true);
                       }}
                       variant="destructive"

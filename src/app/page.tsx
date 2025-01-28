@@ -17,6 +17,9 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { useEffect } from "react";
+import { useUsers } from "@/context/users";
+import { getAllUsers } from "@/hooks/get-all-users";
 
 // Mock data for the chart
 const userActivityData = [
@@ -36,6 +39,17 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function Dashboard() {
+  const { setUsers } = useUsers();
+
+  useEffect(() => {
+    const setAllUsers = async () => {
+      const allUsers = await getAllUsers();
+      setUsers(allUsers);
+    };
+
+    setAllUsers();
+  }, []);
+
   return (
     <div className="space-y-6 m-8">
       <h2 className="text-2xl font-bold md:text-3xl">Dashboard</h2>

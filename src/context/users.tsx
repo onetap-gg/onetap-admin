@@ -40,15 +40,13 @@ const defaultUser = {
   premiumUser: false,
 };
 
-// Creating the context
 const UsersContext = createContext<UserContextState>(defaultState);
 
-interface LeadsProviderProps {
+interface UsersProviderProps {
   children: ReactNode;
 }
 
-// Context provider component
-export const UsersProvider: React.FC<LeadsProviderProps> = ({ children }) => {
+export const UsersProvider: React.FC<UsersProviderProps> = ({ children }) => {
   const [users, setUsers] = useState<User[]>([defaultUser]);
 
   const contextValue = useMemo(
@@ -66,5 +64,4 @@ export const UsersProvider: React.FC<LeadsProviderProps> = ({ children }) => {
   );
 };
 
-// Custom hook to use the users context
 export const useUsers = () => useContext(UsersContext);
