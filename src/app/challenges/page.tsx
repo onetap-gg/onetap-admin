@@ -273,7 +273,7 @@ export default function ChallengeManagement() {
       </div>
 
       {addNewChallengeIsOpen && (
-        <Card className="w-1/3 absolute z-10 right-5">
+        <Card className="w-[60%]  absolute z-10 right-10">
           <CardHeader>
             <CardTitle>Add a new challenge</CardTitle>
             <CardDescription>
@@ -281,7 +281,7 @@ export default function ChallengeManagement() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="challenge-name">Challenge Name</Label>
                 <Input
@@ -520,42 +520,47 @@ export default function ChallengeManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Requirements</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  {Object.entries(requirements).map(([key, value]) => (
-                    <div key={key}>
-                      <Label htmlFor={key}>{key}</Label>
-                      <Input
-                        id={key}
-                        value={value as unknown as string}
-                        disabled={key === "match_status"}
-                        type={`${
-                          typeof value === "number" ? "number" : "text"
-                        }`}
-                        onChange={(e) =>
-                          handleRequirementChange(key, e.target.value)
-                        }
-                        placeholder={key}
-                      />
-                    </div>
-                  ))}
+            </div>
+            <div>
+              <Label>Requirements</Label>
+              <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {Object.entries(requirements).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="flex flex-col space-y-2 min-w-[150px] w-full"
+                  >
+                    <Label htmlFor={key} className="text-sm font-medium">
+                      {key}
+                    </Label>
+                    <Input
+                      className="w-full border border-gray-300 rounded-md p-2"
+                      id={key}
+                      value={value as unknown as string}
+                      disabled={key === "match_status"}
+                      type={typeof value === "number" ? "number" : "text"}
+                      onChange={(e) =>
+                        handleRequirementChange(key, e.target.value)
+                      }
+                      placeholder={key}
+                    />
+                  </div>
+                ))}
+                <div>
+                  <Label htmlFor="reward">Reward</Label>
+                  <Input
+                    className="w-[180px]"
+                    type="number"
+                    required={true}
+                    id="reward"
+                    value={reward}
+                    min={10}
+                    onChange={(e) => {
+                      let value: unknown = e.target.value;
+                      setReward(value as number);
+                    }}
+                    placeholder="Ex: 200"
+                  />
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="reward">Reward</Label>
-                <Input
-                  type="number"
-                  required={true}
-                  id="reward"
-                  value={reward}
-                  min={10}
-                  onChange={(e) => {
-                    let value: unknown = e.target.value;
-                    setReward(value as number);
-                  }}
-                  placeholder="Ex: 200"
-                />
               </div>
             </div>
           </CardContent>
@@ -580,7 +585,7 @@ export default function ChallengeManagement() {
       )}
 
       {editChallengeIsOpen && (
-        <Card className="w-1/3 absolute z-10 right-5">
+        <Card className="w-[60%]  absolute z-10 right-10">
           <CardHeader>
             <CardTitle>Edit {challengeToEdit?.name}</CardTitle>
             <CardDescription>
@@ -588,7 +593,7 @@ export default function ChallengeManagement() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="challenge-name">Challenge Name</Label>
                 <Input
@@ -831,44 +836,50 @@ export default function ChallengeManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Requirements</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  {Object.entries(challengeToEdit.requirements).map(
-                    ([key, value]) => (
-                      <div key={key}>
-                        <Label htmlFor={key}>{key}</Label>
-                        <Input
-                          id={key}
-                          value={value as unknown as string}
-                          disabled={key === "match_status"}
-                          type={`${
-                            typeof value === "number" ? "number" : "text"
-                          }`}
-                          onChange={(e) =>
-                            handleRequirementChange(key, e.target.value)
-                          }
-                          placeholder={key}
-                        />
-                      </div>
-                    )
-                  )}
+            </div>
+            <div>
+              <Label>Requirements</Label>
+              <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {Object.entries(challengeToEdit.requirements).map(
+                  ([key, value]) => (
+                    <div
+                      key={key}
+                      className="flex flex-col space-y-2 min-w-[150px] w-full"
+                    >
+                      <Label htmlFor={key} className="text-sm font-medium">
+                        {key}
+                      </Label>
+                      <Input
+                        className="w-full border border-gray-300 rounded-md p-2"
+                        id={key}
+                        value={value as unknown as string}
+                        disabled={key === "match_status"}
+                        type={`${
+                          typeof value === "number" ? "number" : "text"
+                        }`}
+                        onChange={(e) =>
+                          handleRequirementChange(key, e.target.value)
+                        }
+                        placeholder={key}
+                      />
+                    </div>
+                  )
+                )}
+                <div>
+                  <Label htmlFor="reward">Reward</Label>
+                  <Input
+                    type="number"
+                    required={true}
+                    id="reward"
+                    value={challengeToEdit.reward}
+                    min={10}
+                    onChange={(e) => {
+                      let value: unknown = e.target.value;
+                      setReward(value as number);
+                    }}
+                    placeholder="Ex: 200"
+                  />
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="reward">Reward</Label>
-                <Input
-                  type="number"
-                  required={true}
-                  id="reward"
-                  value={challengeToEdit.reward}
-                  min={10}
-                  onChange={(e) => {
-                    let value: unknown = e.target.value;
-                    setReward(value as number);
-                  }}
-                  placeholder="Ex: 200"
-                />
               </div>
             </div>
           </CardContent>
@@ -934,7 +945,7 @@ export default function ChallengeManagement() {
                     </PopoverContent>
                   </Popover>
                 </TableCell>
-                <TableCell>{challenge.Game.gameName}</TableCell>
+                <TableCell>{challenge.game}</TableCell>
                 <TableCell>{challenge.reward}</TableCell>
                 <TableCell>
                   {format(parseISO(challenge.startTime), "MM/dd/yyyy HH:mm")}

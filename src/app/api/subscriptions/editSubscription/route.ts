@@ -5,7 +5,7 @@ export async function POST(request: Request) {
   const body = await request.json();
   const response = await axios
     .post(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/subscriptions/edit-subscription/${body.subscripitonId}`,
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/subscriptions/edit-subscription/${body.id}`,
       body
     )
     .then((response) => {
