@@ -2,10 +2,11 @@ import axios from "axios";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
-  const { subscripitonId } = await request.json();
+  const body = await request.json();
+  const subscriptionId = body.id;
   const subscriptions = await axios
     .get(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/subscriptions/deactivate-subscription/${subscripitonId}`
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/subscriptions/deactivate-subscription/${subscriptionId}`
     )
     .then((response) => {
       console.log("deactivated subscription", response);

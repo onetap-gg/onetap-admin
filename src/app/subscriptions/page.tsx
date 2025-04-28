@@ -11,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
 import {
   Card,
   CardContent,
@@ -22,24 +21,14 @@ import {
 } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/loader";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { CalendarDaysIcon } from "lucide-react";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { toast } from "sonner";
-
 import { Label } from "@/components/ui/label";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn, convertDateToIST } from "@/lib/utils";
 import { format } from "date-fns";
 import axios from "axios";
@@ -71,176 +60,166 @@ import { getAllSubscriptions } from "@/hooks/get-all-subscription";
 export default function SubscriptionManagement() {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [addNewUserIsOpen, setAddNewUserIsOpen] = useState(false);
-  const [editNewUserIsOpen, setEditNewUserIsOpen] = useState(false);
-  const [userName, setUserName] = useState("");
+  const [addNewSubscriptionIsOpen, setAddNewSubscriptionIsOpen] =
+    useState(false);
+  const [editSubscriptionIsOpen, setEditSubscriptionIsOpen] = useState(false);
+
+  const [addSubscriptionButtonLoading, setAddSubscriptionButtonLoading] =
+    useState(false);
+  const [editSubscriptionButtonLoading, setEditSubscriptionButtonLoading] =
+    useState(false);
+  const [
+    deactivateSubscriptionButtonLoading,
+    setDeactivateSubscriptionButtonLoading,
+  ] = useState(false);
+  const [deleteSubscriptionButtonLoading, setDeleteSubscriptionButtonLoading] =
+    useState(false);
+
+  const [subscriptionId, setSubscriptionId] = useState(0);
+  const [plan, setPlan] = useState("");
+  const [price, setPrice] = useState("");
   const [benefit, setBenefit] = useState("");
   const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [addUserButtonLoading, setAddUserButtonLoading] = useState(false);
-  const [editUserButtonLoading, setEditUserButtonLoading] = useState(false);
-  const [nextPageDisabled, setNextPageDisabled] = useState(false);
+  const [benefits, setBenefits] = useState<
+    { benefit: string; description: string }[]
+  >([]);
 
-  const [inPlanGame, setInPlanGame] = useState(false);
-  const [isStartDateOpen, setIsStartDateOpen] = useState(false);
-  const [isEndDateOpen, setIsEndDateOpen] = useState(false);
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date());
-  const [paginatedSubscriptions, setPaginatedSubscriptions] = useState<any>([]);
-  const [paginatedChallengesss, setPaginatedSubscriptionss] = useState<any>([]);
   const [filteredSubscriptions, setFilteredSubscriptions] = useState<any[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
-  const addNewUserHandler = async () => {
-    setAddUserButtonLoading(true);
-    if (userName === "") {
-      setAddUserButtonLoading(false);
-      return toast.warning(
-        "Please fill the required challenge details before proceeding."
+  const setAllSubscriptions = async () => {
+    let allSubscriptions = await getAllSubscriptions();
+
+    if (!allSubscriptions || allSubscriptions.length === 0) {
+      console.log("No subscriptions found:", allSubscriptions);
+      return;
+    }
+
+    allSubscriptions = allSubscriptions.map((item: any, index: number) => ({
+      ...item,
+      sNo: index + 1,
+    }));
+
+    console.log("Fetched subscriptions:", allSubscriptions);
+    setSubscriptions(allSubscriptions);
+  };
+
+  const addNewSubscriptionHandler = async () => {
+    setAddSubscriptionButtonLoading(true);
+
+    const body = {
+      tier: plan,
+      cost: price,
+      benefits: benefits,
+    };
+    try {
+      const response = await axios.post(
+        "/api/subscriptions/addSubscription",
+        body
       );
-    } else {
-      const body = {
-        tier: inPlanGame ? "Basic" : "Premium",
-        cost: price,
-        benefits: [
-          {
-            benefit: benefit,
-            description: description,
-          },
-        ],
-      };
-      try {
-        const response = await axios.post(
-          "/api/subscriptions/addSubscription",
-
-          body
-        );
-        if (response.status === 200) {
-          setAddNewUserIsOpen(false);
-          setUserName("");
-          setStartDate(new Date());
-          setEndDate(new Date());
-
-          setAddUserButtonLoading(false);
-          return toast.success("Successfully added new challenge! 🔥");
-        } else {
-          setAddUserButtonLoading(false);
-          return toast.error(response.data);
-        }
-      } catch (error) {
-        setAddUserButtonLoading(false);
-        return toast.error("An error occurred while adding the challenge.");
+      if (response.status === 200) {
+        setAddNewSubscriptionIsOpen(false);
+        setAddSubscriptionButtonLoading(false);
+        setSubscriptions([]);
+        setAllSubscriptions();
+        return toast.success("Successfully added new subscription! 🔥");
+      } else {
+        setAddSubscriptionButtonLoading(false);
+        return toast.error(response.data);
       }
+    } catch (error) {
+      setAddSubscriptionButtonLoading(false);
+      return toast.error("An error occurred while adding the subscription.");
     }
   };
 
-  const editNewUserHandler = async () => {
-    setAddUserButtonLoading(true);
-    if (userName === "") {
-      setAddUserButtonLoading(false);
-      return toast.warning(
-        "Please fill the required challenge details before proceeding."
+  const editSubscriptionHandler = async () => {
+    setEditSubscriptionButtonLoading(true);
+
+    const body = {
+      id: subscriptionId,
+      tier: plan,
+      cost: price,
+      benefits: benefits,
+    };
+    try {
+      const response = await axios.post(
+        `/api/subscriptions/editSubscription`,
+        body
       );
-    } else {
-      const body = {
-        tier: inPlanGame ? "Basic" : "Premium",
-        cost: price,
-        benefits: [
-          {
-            benefit: benefit,
-            description: description,
-          },
-        ],
-      };
-      try {
-        const response = await axios.post(
-          "/api/subscriptions/editSubscription",
+      if (response.status === 200) {
+        setEditSubscriptionIsOpen(false);
+        setEditSubscriptionButtonLoading(false);
+        setSubscriptions([]);
+        setAllSubscriptions();
 
-          body
-        );
-        if (response.status === 200) {
-          setAddNewUserIsOpen(false);
-          setUserName("");
-          setStartDate(new Date());
-          setEndDate(new Date());
-
-          setAddUserButtonLoading(false);
-          return toast.success("Successfully added new challenge! 🔥");
-        } else {
-          setAddUserButtonLoading(false);
-          return toast.error(response.data);
-        }
-      } catch (error) {
-        setAddUserButtonLoading(false);
-        return toast.error("An error occurred while adding the challenge.");
+        return toast.success("Successfully updated Subscription! 🔥");
+      } else {
+        setEditSubscriptionIsOpen(false);
+        setEditSubscriptionButtonLoading(false);
+        return toast.error(response.data);
       }
+    } catch (error) {
+      setEditSubscriptionIsOpen(false);
+      setEditSubscriptionButtonLoading(false);
+      return toast.error("An error occurred while adding the subscription.");
     }
   };
 
-  const formatDateToCustom = (date: Date) => {
-    const formattedDate = format(date, "yyyy-MM-dd HH:mm:ss.SSS");
-    const timezoneOffset = "+00";
-    return `${formattedDate}${timezoneOffset}`;
-  };
+  const deactivateSubscriptionHandler = async (id: number) => {
+    setDeactivateSubscriptionButtonLoading(true);
 
-  const handleStartTimeChange = (type: "hour" | "minute", value: string) => {
-    if (startDate) {
-      const newDate = new Date(startDate);
-      if (type === "hour") {
-        newDate.setHours(parseInt(value));
-      } else if (type === "minute") {
-        newDate.setMinutes(parseInt(value));
+    const body = {
+      id: id,
+    };
+    try {
+      const response = await axios.post(`/api/subscriptions/deactivate`, body);
+      if (response.status === 200) {
+        setDeactivateSubscriptionButtonLoading(false);
+        setSubscriptions([]);
+        setAllSubscriptions();
+
+        return toast.success("Successfully deactivated Subscription! 🔥");
+      } else {
+        setDeactivateSubscriptionButtonLoading(false);
+        return toast.error(response.data);
       }
-      setStartDate(newDate);
-      console.log("start date", formatDateToCustom(newDate));
+    } catch (error) {
+      setDeactivateSubscriptionButtonLoading(false);
+      return toast.error(
+        "An error occurred while deactivated the subscription."
+      );
     }
   };
 
-  const handleStartDateSelect = (selectedDate: Date | undefined) => {
-    if (selectedDate) {
-      setStartDate(selectedDate);
-    }
-  };
+  const deleteSubscriptionHandler = async (id: number) => {
+    setDeleteSubscriptionButtonLoading(true);
 
-  const hours = Array.from({ length: 24 }, (_, i) => i);
+    const body = {
+      id: id,
+    };
+    try {
+      const response = await axios.post(
+        `/api/subscriptions/deleteSubscription`,
+        body
+      );
+      if (response.status === 200) {
+        setDeleteSubscriptionButtonLoading(false);
+        setSubscriptions([]);
+        setAllSubscriptions();
 
-  const handleEndTimeChange = (type: "hour" | "minute", value: string) => {
-    if (endDate) {
-      const newDate = new Date(endDate);
-      if (type === "hour") {
-        newDate.setHours(parseInt(value));
-      } else if (type === "minute") {
-        newDate.setMinutes(parseInt(value));
+        return toast.success("Successfully deleted Subscription! 🔥");
+      } else {
+        setDeleteSubscriptionButtonLoading(false);
+        return toast.error(response.data);
       }
-      setEndDate(newDate);
-      console.log("end time", formatDateToCustom(newDate));
-    }
-  };
-
-  const handleEndDateSelect = (selectedDate: Date | undefined) => {
-    if (selectedDate) {
-      setEndDate(selectedDate);
+    } catch (error) {
+      setDeleteSubscriptionButtonLoading(false);
+      return toast.error("An error occurred while deleted the subscription.");
     }
   };
 
   useEffect(() => {
-    const setAllSubscriptions = async () => {
-      let allSubscriptions = await getAllSubscriptions();
-
-      if (!allSubscriptions || allSubscriptions.length === 0) {
-        console.log("No subscriptions found:", allSubscriptions);
-        return;
-      }
-
-      allSubscriptions = allSubscriptions.map((item: any, index: number) => ({
-        ...item,
-        sNo: index + 1,
-      }));
-
-      console.log("Fetched subscriptions:", allSubscriptions);
-      setSubscriptions(allSubscriptions);
-    };
-
     setAllSubscriptions();
   }, []);
 
@@ -262,15 +241,11 @@ export default function SubscriptionManagement() {
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase());
       const matchesCost = subscription.cost?.toString().includes(searchTerm);
-      const matchesBenefits = subscription.benefits?.some((benefit: string) =>
-        benefit.toLowerCase().includes(searchTerm.toLowerCase())
-      );
 
       console.log("Matches Tier:", matchesTier);
       console.log("Matches Cost:", matchesCost);
-      console.log("Matches Benefits:", matchesBenefits);
 
-      return matchesTier || matchesCost || matchesBenefits;
+      return matchesTier || matchesCost;
     });
 
     console.log("Filtered Subscriptions:", filtered);
@@ -290,167 +265,349 @@ export default function SubscriptionManagement() {
         />
         <Button
           onClick={() => {
-            setAddNewUserIsOpen(!addNewUserIsOpen);
+            setPlan("");
+            setPrice("");
+            setBenefit("");
+            setDescription("");
+            setBenefits([]);
+            setAddNewSubscriptionIsOpen(!addNewSubscriptionIsOpen);
           }}
         >
           Add New Plan
         </Button>
       </div>
 
-      {addNewUserIsOpen && (
-        <Card className="w-[60%]  absolute z-10 right-10">
+      {addNewSubscriptionIsOpen && (
+        <Card className="w-[60%] absolute z-10 right-10">
           <CardHeader>
-            <CardTitle>Add a New User</CardTitle>
-            <CardDescription>Enter details of the New User</CardDescription>
+            <CardTitle>Add a New Subscription</CardTitle>
+            <CardDescription>Enter details of the Subscription</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <Label>Plan</Label>
-                <Select
-                  value={inPlanGame ? "true" : "false"}
-                  onValueChange={(value: string) => {
-                    setInPlanGame(value as unknown as boolean);
-                  }}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="False" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Basic</SelectItem>
-                    <SelectItem value="false">Premium</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="grid gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <Label>Plan</Label>
+                  <Select
+                    value={plan}
+                    onValueChange={(value: string) => {
+                      console.log("Selected value:", value);
+                      setPlan(value as string);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={"Select Plan"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Basic">Basic</SelectItem>
+                      <SelectItem value="Premium">Premium</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="challenge-name">Price</Label>
+                  <Input
+                    required
+                    id="challenge-name"
+                    value={price}
+                    type="number"
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="Enter Price"
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="challenge-name">Price</Label>
-                <Input
-                  required
-                  id="challenge-name"
-                  value={price}
-                  type="number"
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="ChallengeABC"
-                />
+              <div className="grid gap-2">
+                <h3 className="font-bold">Benefits</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                  <div>
+                    <Label htmlFor="benefit">Benefits</Label>
+                    <Input
+                      required
+                      id="benefit"
+                      value={benefit}
+                      type="text"
+                      onChange={(e) => setBenefit(e.target.value)}
+                      placeholder="Enter Benefit"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Input
+                      required
+                      id="description"
+                      value={description}
+                      type="text"
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Enter Description"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      if (!benefit || !description) {
+                        return toast.error(
+                          "Please enter both benefit and description."
+                        );
+                      }
+
+                      setBenefits((prev: any) => [
+                        ...prev,
+                        {
+                          benefit: benefit,
+                          description: description,
+                        },
+                      ]);
+                      setBenefit("");
+                      setDescription("");
+                      toast.success("Benefit added successfully!");
+                    }}
+                  >
+                    Add Benefit
+                  </Button>
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="benefit">Benefits</Label>
-                <Input
-                  required
-                  id="benefit"
-                  value={benefit}
-                  type="text"
-                  onChange={(e) => setBenefit(e.target.value)}
-                  placeholder="ChallengeABC"
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  required
-                  id="description"
-                  value={description}
-                  type="text"
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="ChallengeABC"
-                />
-              </div>
+              {benefits.length > 0 && (
+                <div className="bg-gray-100 min-h-[200px] w-full rounded-md border border-input p-2">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Benefit</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {benefits.map((item: any, index: number) => (
+                        <TableRow key={index} className="border-b">
+                          <TableCell>{item.benefit}</TableCell>
+                          <TableCell>{item.description}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                const updatedBenefits = benefits.filter(
+                                  (_, i) => i !== index
+                                );
+                                setBenefits(updatedBenefits);
+                                toast.success("Benefit removed successfully!");
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter>
             <div className="w-full flex justify-between">
               <Button
-                onClick={() => setAddNewUserIsOpen(false)}
+                onClick={() => {
+                  setPlan("");
+                  setPrice("");
+                  setBenefit("");
+                  setDescription("");
+                  setBenefits([]);
+                  setAddNewSubscriptionIsOpen(false);
+                }}
                 variant="outline"
               >
                 Cancel
               </Button>
-              {addUserButtonLoading ? (
-                <LoadingSpinner />
+              {addSubscriptionButtonLoading ? (
+                <Button>
+                  <LoadingSpinner />
+                </Button>
               ) : (
-                <Button onClick={addNewUserHandler}>Submit</Button>
+                <Button
+                  onClick={() => {
+                    if (!plan || !price || benefits.length === 0) {
+                      return toast.error("Please fill all the fields.");
+                    } else {
+                      addNewSubscriptionHandler();
+                    }
+                  }}
+                >
+                  Submit
+                </Button>
               )}
             </div>
           </CardFooter>
         </Card>
       )}
 
-      {editNewUserIsOpen && (
+      {editSubscriptionIsOpen && (
         <Card className="w-[60%]  absolute z-10 right-10">
           <CardHeader>
-            <CardTitle>Edit a New User</CardTitle>
-            <CardDescription>Enter details of the Edit User</CardDescription>
+            <CardTitle>Edit a Subscription</CardTitle>
+            <CardDescription>Enter details of the Subscription</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <Label>Plan</Label>
-                <Select
-                  value={inPlanGame ? "true" : "false"}
-                  onValueChange={(value: string) => {
-                    setInPlanGame(value as unknown as boolean);
-                  }}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="False" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">Basic</SelectItem>
-                    <SelectItem value="false">Premium</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="grid gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <Label>Plan</Label>
+                  <Select
+                    value={plan}
+                    onValueChange={(value: string) => {
+                      console.log("Selected value:", value);
+                      setPlan(value as string);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={"Select Plan"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Basic">Basic</SelectItem>
+                      <SelectItem value="Premium">Premium</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="challenge-name">Price</Label>
+                  <Input
+                    required
+                    id="challenge-name"
+                    value={price}
+                    type="number"
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="Enter Price"
+                  />
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="challenge-name">Price</Label>
-                <Input
-                  required
-                  id="challenge-name"
-                  value={price}
-                  type="number"
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="ChallengeABC"
-                />
+              <div className="grid gap-2">
+                <h3 className="font-bold">Benefits</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                  <div>
+                    <Label htmlFor="benefit">Benefits</Label>
+                    <Input
+                      required
+                      id="benefit"
+                      value={benefit}
+                      type="text"
+                      onChange={(e) => setBenefit(e.target.value)}
+                      placeholder="Enter Benefit"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Input
+                      required
+                      id="description"
+                      value={description}
+                      type="text"
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Enter Description"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      if (!benefit || !description) {
+                        return toast.error(
+                          "Please enter both benefit and description."
+                        );
+                      }
+
+                      setBenefits((prev: any) => [
+                        ...prev,
+                        {
+                          benefit: benefit,
+                          description: description,
+                        },
+                      ]);
+                      setBenefit("");
+                      setDescription("");
+                      toast.success("Benefit added successfully!");
+                    }}
+                  >
+                    Add Benefit
+                  </Button>
+                </div>
               </div>
 
-              <div>
-                <Label htmlFor="benefit">Benefits</Label>
-                <Input
-                  required
-                  id="benefit"
-                  value={benefit}
-                  type="text"
-                  onChange={(e) => setBenefit(e.target.value)}
-                  placeholder="ChallengeABC"
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  required
-                  id="description"
-                  value={description}
-                  type="text"
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="ChallengeABC"
-                />
-              </div>
+              {benefits.length > 0 && (
+                <div className="bg-gray-100 min-h-[200px] w-full rounded-md border border-input p-2">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Benefit</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {benefits.map((item: any, index: number) => (
+                        <TableRow key={index} className="border-b">
+                          <TableCell>{item.benefit}</TableCell>
+                          <TableCell>{item.description}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                const updatedBenefits = benefits.filter(
+                                  (_, i) => i !== index
+                                );
+                                setBenefits(updatedBenefits);
+                                toast.success("Benefit removed successfully!");
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter>
             <div className="w-full flex justify-between">
               <Button
-                onClick={() => setEditNewUserIsOpen(false)}
+                onClick={() => {
+                  setSubscriptionId(0);
+                  setPlan("");
+                  setPrice("");
+                  setBenefit("");
+                  setDescription("");
+                  setBenefits([]);
+                  setEditSubscriptionIsOpen(false);
+                }}
                 variant="outline"
               >
                 Cancel
               </Button>
-              {editUserButtonLoading ? (
-                <LoadingSpinner />
+              {editSubscriptionButtonLoading ? (
+                <Button>
+                  <LoadingSpinner />
+                </Button>
               ) : (
-                <Button onClick={addNewUserHandler}>Submit</Button>
+                <Button
+                  onClick={() => {
+                    if (!plan || !price || benefits.length === 0) {
+                      return toast.error("Please fill all the fields.");
+                    } else {
+                      editSubscriptionHandler();
+                    }
+                  }}
+                >
+                  Update
+                </Button>
               )}
             </div>
           </CardFooter>
@@ -464,54 +621,102 @@ export default function SubscriptionManagement() {
             <TableHead>Plan</TableHead>
             <TableHead>Price</TableHead>
             <TableHead>Start Date</TableHead>
-            <TableHead>End Date</TableHead>
+            {/* <TableHead>End Date</TableHead> */}
             <TableHead>Benefits</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredSubscriptions.map((subscription: any) => (
-            <TableRow key={subscription.id} className="border-b">
-              <TableCell className="hidden sm:table-cell">
-                {subscription.id}
-              </TableCell>
-              <TableCell>{subscription.tier}</TableCell>
-              <TableCell>${subscription.cost}</TableCell>
-              <TableCell className="hidden md:table-cell">
-                {convertDateToIST(subscription.startTime)}
-              </TableCell>
-              <TableCell className="hidden md:table-cell">
-                {subscription.endTime
-                  ? convertDateToIST(subscription.endTime)
-                  : "NA"}
-              </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                {subscription.benefits[0].benefit}
-              </TableCell>
-              <TableCell className="hidden lg:table-cell">
-                {subscription.benefits[0].description}
-              </TableCell>
+          {filteredSubscriptions.length > 0 ? (
+            filteredSubscriptions.map((subscription: any) => (
+              <TableRow key={subscription.id} className="border-b">
+                <TableCell className="hidden sm:table-cell">
+                  {subscription.id}
+                </TableCell>
+                <TableCell>{subscription.tier}</TableCell>
+                <TableCell>${subscription.cost}</TableCell>
+                <TableCell className="hidden md:table-cell">
+                  {convertDateToIST(subscription.startTime)}
+                </TableCell>
+                {/* <TableCell className="hidden md:table-cell">
+                {subscription.endTime ? convertDateToIST(subscription.endTime) : "NA"}
+              </TableCell> */}
+                <TableCell className="hidden lg:table-cell">
+                  <ol style={{ listStyleType: "decimal" }}>
+                    {subscription.benefits && subscription.benefits.length > 0
+                      ? subscription.benefits.map(
+                          (benefit: any, index: number) => (
+                            <li key={index}>{benefit.benefit}</li>
+                          )
+                        )
+                      : "No benefits available"}
+                  </ol>
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  <ol style={{ listStyleType: "decimal" }}>
+                    {subscription.benefits && subscription.benefits.length > 0
+                      ? subscription.benefits.map(
+                          (benefit: any, index: number) => (
+                            <li key={index}>{benefit.description}</li>
+                          )
+                        )
+                      : "No Description available"}
+                  </ol>
+                </TableCell>
 
-              <TableCell>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEditNewUserIsOpen(!editNewUserIsOpen)}
-                  >
-                    Edit
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    Renew
-                  </Button>
-                  <Button variant="destructive" size="sm">
-                    Cancel
-                  </Button>
-                </div>
+                <TableCell>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSubscriptionId(subscription.id);
+                        setPlan(subscription.tier);
+                        setPrice(subscription.cost);
+                        setBenefits(subscription.benefits);
+
+                        setEditSubscriptionIsOpen(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={
+                        deactivateSubscriptionButtonLoading ? true : false
+                      }
+                      onClick={() => {
+                        deactivateSubscriptionHandler(subscription.id);
+                      }}
+                    >
+                      Deactivate
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={deleteSubscriptionButtonLoading ? true : false}
+                      onClick={() => {
+                        deleteSubscriptionHandler(subscription.id);
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow className="border-b">
+              <TableCell
+                colSpan={7}
+                className="text-center py-4 text-gray-600 font-semibold"
+              >
+                Fetching subscriptions... Please wait.
               </TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </div>

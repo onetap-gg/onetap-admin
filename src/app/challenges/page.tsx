@@ -57,6 +57,11 @@ const formatDateToCustom = (date: Date) => {
   return `${formattedDate}${timezoneOffset}`;
 };
 
+const formatDateToDisplay = (date: Date) => {
+  const formattedDate = format(date, "yyyy-MM-dd HH:mm:ss");
+  return `${formattedDate}`;
+};
+
 export default function ChallengeManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [paginatedChallenges, setPaginatedChallenges] = useState<any>([]);
@@ -67,10 +72,11 @@ export default function ChallengeManagement() {
   const [addNewChallengeIsOpen, setAddNewChallengeIsOpen] = useState(false);
   const [challengeName, setChallengeName] = useState("");
   const [gameId, setGameId] = useState(0);
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [isStartDateOpen, setIsStartDateOpen] = useState(false);
-  const [endDate, setEndDate] = useState<Date>(new Date());
-  const [isEndDateOpen, setIsEndDateOpen] = useState(false);
+  const [gameName, setGameName] = useState("");
+  const [startTime, setStartTime] = useState<Date>(new Date());
+  const [isStartTimeOpen, setIsStartTimeOpen] = useState(false);
+  const [endTime, setEndTime] = useState<Date>(new Date());
+  const [isEndTimeOpen, setIsEndTimeOpen] = useState(false);
   const [addChallengeButtonLoading, setAddChallengeButtonLoading] =
     useState(false);
   const [editChallengeButtonLoading, setEditChallengeButtonLoading] =
@@ -125,40 +131,40 @@ export default function ChallengeManagement() {
   };
 
   const hours = Array.from({ length: 24 }, (_, i) => i);
-  const handleStartDateSelect = (selectedDate: Date | undefined) => {
+  const handleStartTimeSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      setStartDate(selectedDate);
+      setStartTime(selectedDate);
     }
   };
 
   const handleStartTimeChange = (type: "hour" | "minute", value: string) => {
-    if (startDate) {
-      const newDate = new Date(startDate);
+    if (startTime) {
+      const newDate = new Date(startTime);
       if (type === "hour") {
         newDate.setHours(parseInt(value));
       } else if (type === "minute") {
         newDate.setMinutes(parseInt(value));
       }
-      setStartDate(newDate);
+      setStartTime(newDate);
       console.log("start date", formatDateToCustom(newDate));
     }
   };
 
-  const handleEndDateSelect = (selectedDate: Date | undefined) => {
+  const handleEndTimeSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      setEndDate(selectedDate);
+      setEndTime(selectedDate);
     }
   };
 
   const handleEndTimeChange = (type: "hour" | "minute", value: string) => {
-    if (endDate) {
-      const newDate = new Date(endDate);
+    if (endTime) {
+      const newDate = new Date(endTime);
       if (type === "hour") {
         newDate.setHours(parseInt(value));
       } else if (type === "minute") {
         newDate.setMinutes(parseInt(value));
       }
-      setEndDate(newDate);
+      setEndTime(newDate);
       console.log("end time", formatDateToCustom(newDate));
     }
   };
@@ -174,8 +180,8 @@ export default function ChallengeManagement() {
       const body = {
         name: challengeName,
         type: challengeType,
-        startTime: startDate,
-        endTime: endDate,
+        startTime: startTime,
+        endTime: endTime,
         reward: reward,
         requirements: requirements,
         gameId: gameId,
@@ -187,11 +193,12 @@ export default function ChallengeManagement() {
           data: [body],
         });
         if (response.status === 200) {
+          setAllChallenges();
           setAddNewChallengeIsOpen(false);
           setChallengeName("");
           setChallengeType("daily");
-          setStartDate(new Date());
-          setEndDate(new Date());
+          setStartTime(new Date());
+          setEndTime(new Date());
           setReward(10);
           setRequirements({
             agent: "",
@@ -223,32 +230,102 @@ export default function ChallengeManagement() {
     }
   };
 
-  const editChallengeHandler = async () => {};
+  const editChallengeHandler = async () => {
+    setEditChallengeButtonLoading(true);
+    if (challengeName === "" || gameId === 0 || reward === 0) {
+      setEditChallengeButtonLoading(false);
+      return toast.warning(
+        "Please fill the required challenge details before proceeding."
+      );
+    } else {
+      const body = {
+        id: challengeToEdit.id,
+        name: challengeName,
+        type: challengeType,
+        reward: reward,
+        startTime: startTime,
+        endTime: endTime,
+        requirements: requirements,
+        // Game: {
+        //   id: gameId,
+        //   gameName: gameName,
+        // },
+      };
+      try {
+        const response = await axios.post("/api/challenges/editChallenge", {
+          id: challengeToEdit.id,
+          gameId: gameId,
+          data: body,
+        });
+        if (response.status === 200) {
+          setAllChallenges();
+          setAddNewChallengeIsOpen(false);
+          setEditChallengeIsOpen(false);
+          setChallengeName("");
+          setChallengeType("daily");
+          setStartTime(new Date());
+          setEndTime(new Date());
+          setReward(10);
+          setRequirements({
+            agent: "",
+            deaths: 0,
+            region: "",
+            assists: 0,
+            headshot: 0,
+            game_mode: "",
+            damage_done: 0,
+            team_scores: 0,
+            total_kills: 0,
+            damage_taken: 0,
+            match_status: false,
+            spikes_defuse: 0,
+            spikes_planted: 0,
+          });
+          setGameId(0);
+          setGameName("");
+          setChallengeToEdit(null);
+          setInSameGame(false);
+          setEditChallengeButtonLoading(false);
+          return toast.success("Successfully Edited challenge! 🔥");
+        } else {
+          setEditChallengeButtonLoading(false);
+          return toast.error(response.data);
+        }
+      } catch (error) {
+        setEditChallengeButtonLoading(false);
+        return toast.error("An error occurred while adding the challenge.");
+      }
+    }
+  };
+
+  const setAllChallenges = async () => {
+    let allChallenges = await getChallenges();
+    allChallenges = allChallenges.sort((a: any, b: any) => {
+      return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+    });
+    allChallenges = allChallenges.map((item: any, index: number) => {
+      return { ...item, sNo: (index += 1) };
+    });
+    let arg_challenges: any = {};
+    if (allChallenges.length > 20) {
+      setNextPageDisabled(false);
+      let page = 1;
+      const chunkSize = 20;
+      for (let i = 0; i < allChallenges.length; i += chunkSize) {
+        const chunk = allChallenges.slice(i, i + chunkSize);
+        arg_challenges[page] = chunk;
+        page++;
+      }
+      console.log(arg_challenges);
+      setPaginatedChallenges(arg_challenges);
+    } else {
+      setNextPageDisabled(true);
+      setPaginatedChallenges({ 1: allChallenges });
+    }
+    setChallenges(allChallenges);
+  };
 
   useEffect(() => {
-    const setAllChallenges = async () => {
-      let allChallenges = await getChallenges();
-      allChallenges = allChallenges.map((item: any, index: number) => {
-        return { ...item, sNo: (index += 1) };
-      });
-      let arg_challenges: any = {};
-      if (allChallenges.length > 20) {
-        setNextPageDisabled(false);
-        let page = 1;
-        const chunkSize = 20;
-        for (let i = 0; i < allChallenges.length; i += chunkSize) {
-          const chunk = allChallenges.slice(i, i + chunkSize);
-          arg_challenges[page] = chunk;
-          page++;
-        }
-        console.log(arg_challenges);
-        setPaginatedChallenges(arg_challenges);
-      } else {
-        setNextPageDisabled(true);
-        setPaginatedChallenges({ 1: allChallenges });
-      }
-      setChallenges(allChallenges);
-    };
     setAllChallenges();
   }, []);
 
@@ -305,20 +382,20 @@ export default function ChallengeManagement() {
               <div>
                 <Label>Start Date & Time</Label>
                 <Popover
-                  open={isStartDateOpen}
-                  onOpenChange={setIsStartDateOpen}
+                  open={isStartTimeOpen}
+                  onOpenChange={setIsStartTimeOpen}
                 >
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !startDate && "text-muted-foreground"
+                        !startTime && "text-muted-foreground"
                       )}
                     >
                       <CalendarDaysIcon className="mr-2 h-4 w-4" />
-                      {startDate ? (
-                        format(startDate, "MM/dd/yyyy hh:mm")
+                      {startTime ? (
+                        format(startTime, "MM/dd/yyyy hh:mm")
                       ) : (
                         <span>MM/DD/YYYY hh:mm</span>
                       )}
@@ -328,8 +405,8 @@ export default function ChallengeManagement() {
                     <div className="sm:flex">
                       <Calendar
                         mode="single"
-                        selected={startDate}
-                        onSelect={handleStartDateSelect}
+                        selected={startTime}
+                        onSelect={handleStartTimeSelect}
                         initialFocus
                       />
                       <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x">
@@ -340,7 +417,7 @@ export default function ChallengeManagement() {
                                 key={hour}
                                 size="icon"
                                 variant={
-                                  startDate && startDate.getHours() === hour
+                                  startTime && startTime.getHours() === hour
                                     ? "default"
                                     : "ghost"
                                 }
@@ -366,8 +443,8 @@ export default function ChallengeManagement() {
                                   key={minute}
                                   size="icon"
                                   variant={
-                                    startDate &&
-                                    startDate.getMinutes() === minute
+                                    startTime &&
+                                    startTime.getMinutes() === minute
                                       ? "default"
                                       : "ghost"
                                   }
@@ -396,18 +473,18 @@ export default function ChallengeManagement() {
               </div>
               <div>
                 <Label>End Date & Time</Label>
-                <Popover open={isEndDateOpen} onOpenChange={setIsEndDateOpen}>
+                <Popover open={isEndTimeOpen} onOpenChange={setIsEndTimeOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground"
+                        !endTime && "text-muted-foreground"
                       )}
                     >
                       <CalendarDaysIcon className="mr-2 h-4 w-4" />
-                      {endDate ? (
-                        format(endDate, "MM/dd/yyyy hh:mm")
+                      {endTime ? (
+                        format(endTime, "MM/dd/yyyy hh:mm")
                       ) : (
                         <span>MM/DD/YYYY hh:mm</span>
                       )}
@@ -417,8 +494,8 @@ export default function ChallengeManagement() {
                     <div className="sm:flex">
                       <Calendar
                         mode="single"
-                        selected={endDate}
-                        onSelect={handleEndDateSelect}
+                        selected={endTime}
+                        onSelect={handleEndTimeSelect}
                         initialFocus
                       />
                       <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x">
@@ -429,7 +506,7 @@ export default function ChallengeManagement() {
                                 key={hour}
                                 size="icon"
                                 variant={
-                                  endDate && endDate.getHours() === hour
+                                  endTime && endTime.getHours() === hour
                                     ? "default"
                                     : "ghost"
                                 }
@@ -455,7 +532,7 @@ export default function ChallengeManagement() {
                                   key={minute}
                                   size="icon"
                                   variant={
-                                    endDate && endDate.getMinutes() === minute
+                                    endTime && endTime.getMinutes() === minute
                                       ? "default"
                                       : "ghost"
                                   }
@@ -503,14 +580,13 @@ export default function ChallengeManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              {/* <div>
                 <Label>In same game</Label>
                 <Select
                   value={inSameGame ? "true" : "false"}
                   onValueChange={(value: string) => {
                     setInSameGame(value as unknown as boolean);
-                  }}
-                >
+                  }}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="False" />
                   </SelectTrigger>
@@ -519,7 +595,7 @@ export default function ChallengeManagement() {
                     <SelectItem value="false">False</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
             </div>
             <div>
               <Label>Requirements</Label>
@@ -597,9 +673,9 @@ export default function ChallengeManagement() {
               <div>
                 <Label htmlFor="challenge-name">Challenge Name</Label>
                 <Input
-                  required={true}
                   id="challenge-name"
-                  value={challengeToEdit?.name}
+                  value={challengeName}
+                  type="text"
                   onChange={(e) => setChallengeName(e.target.value)}
                   placeholder="ChallengeABC"
                 />
@@ -607,30 +683,30 @@ export default function ChallengeManagement() {
               <div>
                 <Label htmlFor="challenge-type">Type</Label>
                 <Input
-                  required={true}
                   id="challenge-type"
-                  value={challengeToEdit.type}
+                  value={challengeType}
                   onChange={(e) => setChallengeType(e.target.value)}
                   placeholder="daily"
                 />
               </div>
+
               <div>
                 <Label>Start Date & Time</Label>
                 <Popover
-                  open={isStartDateOpen}
-                  onOpenChange={setIsStartDateOpen}
+                  open={isStartTimeOpen}
+                  onOpenChange={setIsStartTimeOpen}
                 >
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !challengeToEdit.startDate && "text-muted-foreground"
+                        !startTime && "text-muted-foreground"
                       )}
                     >
                       <CalendarDaysIcon className="mr-2 h-4 w-4" />
-                      {challengeToEdit.startDate ? (
-                        format(challengeToEdit.startDate, "MM/dd/yyyy hh:mm")
+                      {startTime ? (
+                        <span>{formatDateToDisplay(startTime)}</span>
                       ) : (
                         <span>MM/DD/YYYY hh:mm</span>
                       )}
@@ -640,8 +716,8 @@ export default function ChallengeManagement() {
                     <div className="sm:flex">
                       <Calendar
                         mode="single"
-                        selected={startDate}
-                        onSelect={handleStartDateSelect}
+                        selected={startTime}
+                        onSelect={handleStartTimeSelect}
                         initialFocus
                       />
                       <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x">
@@ -652,7 +728,7 @@ export default function ChallengeManagement() {
                                 key={hour}
                                 size="icon"
                                 variant={
-                                  startDate && startDate.getHours() === hour
+                                  startTime && startTime.getHours() === hour
                                     ? "default"
                                     : "ghost"
                                 }
@@ -678,8 +754,8 @@ export default function ChallengeManagement() {
                                   key={minute}
                                   size="icon"
                                   variant={
-                                    startDate &&
-                                    startDate.getMinutes() === minute
+                                    startTime &&
+                                    startTime.getMinutes() === minute
                                       ? "default"
                                       : "ghost"
                                   }
@@ -708,18 +784,18 @@ export default function ChallengeManagement() {
               </div>
               <div>
                 <Label>End Date & Time</Label>
-                <Popover open={isEndDateOpen} onOpenChange={setIsEndDateOpen}>
+                <Popover open={isEndTimeOpen} onOpenChange={setIsEndTimeOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !challengeToEdit.endDate && "text-muted-foreground"
+                        !challengeToEdit.endTime && "text-muted-foreground"
                       )}
                     >
                       <CalendarDaysIcon className="mr-2 h-4 w-4" />
-                      {challengeToEdit.endDate ? (
-                        format(challengeToEdit.endDate, "MM/dd/yyyy hh:mm")
+                      {endTime ? (
+                        <span>{formatDateToDisplay(endTime)}</span>
                       ) : (
                         <span>MM/DD/YYYY hh:mm</span>
                       )}
@@ -729,8 +805,8 @@ export default function ChallengeManagement() {
                     <div className="sm:flex">
                       <Calendar
                         mode="single"
-                        selected={endDate}
-                        onSelect={handleEndDateSelect}
+                        selected={endTime}
+                        onSelect={handleEndTimeSelect}
                         initialFocus
                       />
                       <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x">
@@ -741,7 +817,7 @@ export default function ChallengeManagement() {
                                 key={hour}
                                 size="icon"
                                 variant={
-                                  endDate && endDate.getHours() === hour
+                                  endTime && endTime.getHours() === hour
                                     ? "default"
                                     : "ghost"
                                 }
@@ -767,7 +843,7 @@ export default function ChallengeManagement() {
                                   key={minute}
                                   size="icon"
                                   variant={
-                                    endDate && endDate.getMinutes() === minute
+                                    endTime && endTime.getMinutes() === minute
                                       ? "default"
                                       : "ghost"
                                   }
@@ -794,18 +870,21 @@ export default function ChallengeManagement() {
                   </PopoverContent>
                 </Popover>
               </div>
+
               <div>
                 <Label htmlFor="game">Game</Label>
                 <Select
+                  disabled={true}
                   onValueChange={(value: string) => {
                     setGameId(value as unknown as number);
+                    setGameName(
+                      games[value as unknown as number as keyof typeof games]
+                    );
                   }}
                 >
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger>
                     <SelectValue
-                      placeholder={
-                        games[challengeToEdit?.game_id as keyof typeof games]
-                      }
+                      placeholder={games[gameId as keyof typeof games]}
                     />
                   </SelectTrigger>
                   <SelectContent>
@@ -820,66 +899,45 @@ export default function ChallengeManagement() {
                 </Select>
               </div>
               <div>
-                <Label>In same game</Label>
-                <Select
-                  value={challengeToEdit.inSameGame ? "true" : "false"}
-                  onValueChange={(value: string) => {
-                    setInSameGame(value as unknown as boolean);
+                <Label htmlFor="reward">Reward</Label>
+                <Input
+                  type="number"
+                  required={true}
+                  id="reward"
+                  value={reward}
+                  min={10}
+                  onChange={(e) => {
+                    let value: unknown = e.target.value;
+                    setReward(value as number);
                   }}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="False" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="true">True</SelectItem>
-                    <SelectItem value="false">False</SelectItem>
-                  </SelectContent>
-                </Select>
+                  placeholder="Ex: 200"
+                />
               </div>
             </div>
-            <div>
-              <Label>Requirements</Label>
-              <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {Object.entries(challengeToEdit.requirements).map(
-                  ([key, value]) => (
-                    <div
-                      key={key}
-                      className="flex flex-col space-y-2 min-w-[150px] w-full"
-                    >
-                      <Label htmlFor={key} className="text-sm font-medium">
-                        {key}
-                      </Label>
-                      <Input
-                        className="w-full border border-gray-300 rounded-md p-2"
-                        id={key}
-                        value={value as unknown as string}
-                        disabled={key === "match_status"}
-                        type={`${
-                          typeof value === "number" ? "number" : "text"
-                        }`}
-                        onChange={(e) =>
-                          handleRequirementChange(key, e.target.value)
-                        }
-                        placeholder={key}
-                      />
-                    </div>
-                  )
-                )}
-                <div>
-                  <Label htmlFor="reward">Reward</Label>
-                  <Input
-                    type="number"
-                    required={true}
-                    id="reward"
-                    value={challengeToEdit.reward}
-                    min={10}
-                    onChange={(e) => {
-                      let value: unknown = e.target.value;
-                      setReward(value as number);
-                    }}
-                    placeholder="Ex: 200"
-                  />
-                </div>
+            <div className="mt-4">
+              <h3 className="mb-2 font-bold">Requirements</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {Object.entries(requirements).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="flex flex-col space-y-2 min-w-[150px] w-full"
+                  >
+                    <Label htmlFor={key} className="text-sm font-medium">
+                      {key}
+                    </Label>
+                    <Input
+                      className="w-full border border-gray-300 rounded-md p-2"
+                      id={key}
+                      value={value as unknown as string}
+                      disabled={key === "match_status"}
+                      type={`${typeof value === "number" ? "number" : "text"}`}
+                      onChange={(e) =>
+                        handleRequirementChange(key, e.target.value)
+                      }
+                      placeholder={key}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>
@@ -894,7 +952,9 @@ export default function ChallengeManagement() {
                 Cancel
               </Button>
               {editChallengeButtonLoading ? (
-                <LoadingSpinner />
+                <Button>
+                  <LoadingSpinner />
+                </Button>
               ) : (
                 <Button onClick={editChallengeHandler}>Submit</Button>
               )}
@@ -945,7 +1005,7 @@ export default function ChallengeManagement() {
                     </PopoverContent>
                   </Popover>
                 </TableCell>
-                <TableCell>{challenge.game}</TableCell>
+                <TableCell>{challenge.Game.gameName}</TableCell>
                 <TableCell>{challenge.reward}</TableCell>
                 <TableCell>
                   {format(parseISO(challenge.startTime), "MM/dd/yyyy HH:mm")}
@@ -960,6 +1020,19 @@ export default function ChallengeManagement() {
                       size="sm"
                       onClick={() => {
                         setChallengeToEdit(challenge);
+                        setChallengeName(challenge.name);
+                        setChallengeType(challenge.type ? challenge.type : "");
+                        setStartTime(new Date(challenge.startTime));
+                        setEndTime(new Date(challenge.endTime));
+                        setReward(challenge.reward);
+                        setRequirements(challenge.requirements);
+                        setGameId(challenge.Game.id);
+                        setGameName(challenge.Game.gameName);
+                        setInSameGame(challenge.inSameGame);
+                        setIsStartTimeOpen(false);
+                        setIsEndTimeOpen(false);
+                        setAddNewChallengeIsOpen(false);
+
                         setEditChallengeIsOpen(true);
                       }}
                     >

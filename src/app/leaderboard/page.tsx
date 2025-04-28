@@ -87,9 +87,9 @@ export default function LeaderboardManagement() {
     to: addDays(new Date(), 20),
   });
 
-  const filteredEntries = leaderboard.filter((entry: any) =>
-    entry.User.userName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // const filteredEntries = leaderboard.filter((entry: any) =>
+  //   entry.User.userName.toLowerCase().includes(searchTerm.toLowerCase())
+  // );
 
   const handlePageChange = async (action: string) => {
     let pageLimit = Object.keys(paginatedLeaderboard).length;
@@ -343,16 +343,16 @@ export default function LeaderboardManagement() {
         </TableHeader>
         <TableBody>
           {searchTerm !== "" &&
-            filteredEntries.map((entry: any) => (
+            leaderboard.map((entry: any) => (
               <TableRow key={entry.id}>
                 <TableCell>{entry.rank}</TableCell>
-                <TableCell>{entry.User.userName}</TableCell>
-                <TableCell>{entry.gameLevel}</TableCell>
-                <TableCell>{entry.gameBalance}</TableCell>
+                <TableCell>{entry.userName}</TableCell>
+                <TableCell>0</TableCell>
+                <TableCell>{entry.lifetime_earnings}</TableCell>
                 <TableCell>
                   <Button
                     onClick={() => {
-                      filterUserToSuspend(entry.User.userName);
+                      filterUserToSuspend(entry.userName);
                       console.log(entry);
                       setSuspendUserIsOpen(!suspendUserIsOpen);
                     }}
@@ -364,7 +364,7 @@ export default function LeaderboardManagement() {
                   </Button>
                   <Button
                     onClick={() => {
-                      filterUserToDelete(entry.User.userName);
+                      filterUserToDelete(entry.userName);
                       setDeleteUserIsOpen(true);
                     }}
                     variant="destructive"
@@ -381,13 +381,13 @@ export default function LeaderboardManagement() {
               return (
                 <TableRow key={entry.id}>
                   <TableCell>{entry.rank}</TableCell>
-                  <TableCell>{entry.User.userName}</TableCell>
-                  <TableCell>{entry.gameLevel}</TableCell>
-                  <TableCell>{entry.gameBalance}</TableCell>
+                  <TableCell>{entry.userName}</TableCell>
+                  <TableCell>0</TableCell>
+                  <TableCell>{entry.lifetime_earnings}</TableCell>
                   <TableCell>
                     <Button
                       onClick={() => {
-                        filterUserToSuspend(entry.User.userName);
+                        filterUserToSuspend(entry.userName);
                         console.log(entry);
                         setSuspendUserIsOpen(!suspendUserIsOpen);
                       }}
@@ -399,7 +399,7 @@ export default function LeaderboardManagement() {
                     </Button>
                     <Button
                       onClick={() => {
-                        filterUserToDelete(entry.User.userName);
+                        filterUserToDelete(entry.userName);
                         setDeleteUserIsOpen(true);
                       }}
                       variant="destructive"
