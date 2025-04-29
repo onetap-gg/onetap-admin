@@ -2,6 +2,10 @@
 
 import { TrendingUp } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
+import { useState, useEffect } from "react";
+import { useUsers } from "@/context/users";
+import { getAllUsers } from "@/hooks/get-all-users";
+import { LoadingSpinner } from "@/components/loader";
 
 import {
   Card,
@@ -17,9 +21,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { useEffect } from "react";
-import { useUsers } from "@/context/users";
-import { getAllUsers } from "@/hooks/get-all-users";
 
 // Mock data for the chart
 const userActivityData = [
@@ -40,15 +41,33 @@ const chartConfig = {
 
 export default function Dashboard() {
   const { setUsers } = useUsers();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const setAllUsers = async () => {
-      const allUsers = await getAllUsers();
-      setUsers(allUsers);
+      try {
+        const allUsers = await getAllUsers();
+        setUsers(allUsers);
+      } catch (error) {
+        console.error("Error loading users:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     setAllUsers();
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <LoadingSpinner />
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 m-8">

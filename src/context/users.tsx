@@ -16,6 +16,8 @@ export interface User {
   Auth: string;
   level: number;
   premiumUser: boolean;
+  suspended: boolean;
+  deleted: boolean;
 }
 
 export interface UserContextState {
@@ -38,6 +40,8 @@ const defaultUser = {
   Auth: "",
   level: 0,
   premiumUser: false,
+  suspended: false,
+  deleted: false,
 };
 
 const UsersContext = createContext<UserContextState>(defaultState);
