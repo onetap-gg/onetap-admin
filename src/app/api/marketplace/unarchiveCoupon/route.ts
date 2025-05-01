@@ -2,11 +2,14 @@ import axios from "axios";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
-  const { authId } = await request.json();
+  const { couponId } = await request.json();
+
   const response = await axios
-    .get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/user/delete-user/${authId}`)
+    .get(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/marketplace/items/${couponId}/unarchive`
+    )
     .then((response) => {
-      console.log("deleted user", response);
+      console.log("coupon unarchived", response);
       return response;
     });
 

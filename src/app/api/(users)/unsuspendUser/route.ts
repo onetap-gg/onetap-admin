@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   const { authId } = await request.json();
   const response = await axios
-    .post(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/unsuspend-user/${authId}`
+    .get(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/user/unsuspend-user/${authId}`
     )
     .then((response) => {
       console.log("unsuspended user", response);

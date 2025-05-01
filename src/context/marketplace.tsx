@@ -6,18 +6,23 @@ import React, {
   ReactNode,
 } from "react";
 
-export interface Coupon {
+export interface Item {
   id: number;
-  coupon_id: number;
-  coupon_name: string;
-  game_id: number;
-  description: string;
-  points_to_redeem: number;
+  itemName: string;
+  itemType: string;
+  itemValue: string[];
+  extraDetails: {
+    description: string;
+    points_to_redeem: number;
+    number_of_coupons: number;
+  };
+  gameId: number;
+  archived: boolean;
 }
 
 export interface CouponContextState {
-  coupons: Coupon[];
-  setCoupons: (coupons: Coupon[]) => void;
+  coupons: Item[];
+  setCoupons: (coupons: Item[]) => void;
 }
 
 const defaultState: CouponContextState = {
@@ -27,11 +32,16 @@ const defaultState: CouponContextState = {
 
 const defaultCoupon = {
   id: 0,
-  coupon_id: 0,
-  coupon_name: "",
-  game_id: 0,
-  description: "",
-  points_to_redeem: 0,
+  itemName: "",
+  itemType: "",
+  itemValue: [""],
+  extraDetails: {
+    description: "",
+    points_to_redeem: 0,
+    number_of_coupons: 1,
+  },
+  gameId: 0,
+  archived: false
 };
 
 const CouponsContext = createContext<CouponContextState>(defaultState);
@@ -43,7 +53,7 @@ interface CouponsProviderProps {
 export const CouponsProvider: React.FC<CouponsProviderProps> = ({
   children,
 }) => {
-  const [coupons, setCoupons] = useState<Coupon[]>([defaultCoupon]);
+  const [coupons, setCoupons] = useState<Item[]>([defaultCoupon]);
 
   const contextValue = useMemo(
     () => ({

@@ -60,7 +60,8 @@ export default function UserManagement() {
   const [userToSuspend, setUserToSuspend] = useState<any>({});
   const [userToDelete, setUserToDelete] = useState<any>({});
   const [userToUnsuspend, setUserToUnsuspend] = useState<any>({});
-  const [unsuspendUserIsOpen, setUnsuspendUserIsOpen] = useState(false);
+  const [unsuspendUserButtonLoading, setUnsuspendUserButtonLoading] =
+    useState(false);
   const [suspendUserButtonLoading, setSuspendUserButtonLoading] =
     useState(false);
   const [deleteUserButtonLoading, setDeleteUserButtonLoading] = useState(false);
@@ -138,20 +139,20 @@ export default function UserManagement() {
     }
   };
 
-  const unsuspendUserHandler = async () => {
-    setSuspendUserButtonLoading(true);
+  const unsuspendUserHandler = async (auth: string) => {
+    toast.info("Unsuspending user...");
+    console.log(userToUnsuspend);
     const response = await axios.post("/api/unsuspendUser", {
-      authId: userToUnsuspend.Auth,
+      authId: auth,
     });
 
     if (response.status === 500) {
-      setSuspendUserButtonLoading(false);
+      setUnsuspendUserButtonLoading(false);
       return toast.error(response.data);
     } else {
-      setSuspendUserButtonLoading(false);
+      setUnsuspendUserButtonLoading(false);
       setUserToUnsuspend({});
-      setUnsuspendUserIsOpen(false);
-      return toast.success("User unsuspended successfully! 🔨");
+      return toast.success("User unsuspended successfully! ✨");
     }
   };
 
@@ -202,7 +203,8 @@ export default function UserManagement() {
 
   useEffect(() => {
     const setAllUsers = async () => {
-      const allUsers = usersContext.users;
+      const allUsers = await getAllUsers();
+      usersContext.setUsers(allUsers);
       let paginatedUsers: any = {};
       if (allUsers.length > 20) {
         setNextPageDisabled(false);
@@ -250,8 +252,7 @@ export default function UserManagement() {
             <DialogTitle>Are you absolutely sure?</DialogTitle>
             <DialogDescription className="text-black">
               This action cannot be undone. This will permanently delete the
-              account of
-              <b> {userToDelete.userName}</b>.
+              account of this user.
             </DialogDescription>
             <div className="flex gap-4">
               <Button
@@ -285,8 +286,7 @@ export default function UserManagement() {
             <DialogTitle>Are you absolutely sure?</DialogTitle>
             <DialogDescription className="text-black">
               This action can only be undone by an admin. This will suspend the
-              account of
-              <b> {userToDelete.userName}</b>.
+              account of this user.
             </DialogDescription>
             <div className="flex gap-4">
               <Button
@@ -462,8 +462,8 @@ export default function UserManagement() {
             <TableRow>
               <TableHead>Username</TableHead>
               <TableHead>Full Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Subsciption type</TableHead>
+              {/* <TableHead>Email</TableHead> */}
+              <TableHead>Subscription Type</TableHead>
               <TableHead>Account Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -474,10 +474,14 @@ export default function UserManagement() {
                 <TableRow key={user.id}>
                   <TableCell>{user.userName}</TableCell>
                   <TableCell>{user.profileName}</TableCell>
-                  <TableCell>{user.premiumUser ? "Premium" : "Free"}</TableCell>
+                  {user.premiumUser ? (
+                    <TableCell>Premium</TableCell>
+                  ) : (
+                    <TableCell>Free</TableCell>
+                  )}
                   <TableCell>
                     {user.suspended && (
-                      <Badge className="text-red-500">Suspended</Badge>
+                      <Badge className="text-red-500">Suspended </Badge>
                     )}
                     {user.deleted && (
                       <Badge className="text-red-500">Deleted</Badge>
@@ -490,13 +494,26 @@ export default function UserManagement() {
                     <div className="flex flex-wrap gap-4">
                       <Button
                         onClick={() => {
-                          setUserToSuspend(user);
-                          setSuspendUserIsOpen(!suspendUserIsOpen);
+                          if (user.suspended) {
+                            unsuspendUserHandler(user.Auth);
+                          } else {
+                            setUserToSuspend(user);
+                            setSuspendUserIsOpen(!suspendUserIsOpen);
+                          }
                         }}
-                        variant={"destructive"}
+                        variant={user.suspended ? "default" : "destructive"}
                         size="sm"
                       >
-                        Suspend
+                        {unsuspendUserButtonLoading ? (
+                          <span>
+                            Unsuspending...
+                            <LoadingSpinner />
+                          </span>
+                        ) : user.suspended ? (
+                          "Unsuspend"
+                        ) : (
+                          "Suspend"
+                        )}
                       </Button>
                       <Button
                         onClick={() => {
@@ -518,15 +535,17 @@ export default function UserManagement() {
                 <TableRow key={user.id}>
                   <TableCell>{user.userName}</TableCell>
                   <TableCell>{user.profileName}</TableCell>
-                  <TableCell>{user.premiumUser ? "Premium" : "Free"}</TableCell>
+                  {user.premiumUser ? (
+                    <TableCell>Premium</TableCell>
+                  ) : (
+                    <TableCell>Free</TableCell>
+                  )}
                   <TableCell>
                     {user.suspended && (
                       <Badge className="bg-red-500 text-white">Suspended</Badge>
                     )}
                     {user.deleted && (
-                      <Badge className="bg-red-500 text-white">
-                        Deleted
-                      </Badge>
+                      <Badge className="bg-red-500 text-white">Deleted</Badge>
                     )}
                     {!user.suspended && !user.deleted && (
                       <Badge className="bg-green-500 text-white hover:bg-green-500">
@@ -538,9 +557,8 @@ export default function UserManagement() {
                     <div className="flex flex-wrap gap-4">
                       <Button
                         onClick={() => {
-                          if (user.suspend) {
-                            setUserToUnsuspend({});
-                            setUnsuspendUserIsOpen(!unsuspendUserIsOpen);
+                          if (user.suspended) {
+                            unsuspendUserHandler(user.Auth);
                           } else {
                             setUserToSuspend(user);
                             setSuspendUserIsOpen(!suspendUserIsOpen);
@@ -551,16 +569,20 @@ export default function UserManagement() {
                       >
                         {user.suspended ? "Unsuspend" : "Suspend"}
                       </Button>
-                      <Button
-                        onClick={() => {
-                          setUserToDelete(user);
-                          setDeleteUserIsOpen(true);
-                        }}
-                        variant="destructive"
-                        size="sm"
-                      >
-                        Delete
-                      </Button>
+                      {user.deleted ? (
+                        <div></div>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            setUserToDelete(user);
+                            setDeleteUserIsOpen(true);
+                          }}
+                          variant="destructive"
+                          size="sm"
+                        >
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

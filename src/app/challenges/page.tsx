@@ -101,6 +101,14 @@ export default function ChallengeManagement() {
   const [challengeType, setChallengeType] = useState("daily");
   const [challengeToEdit, setChallengeToEdit] = useState<any>(null);
   const [editChallengeIsOpen, setEditChallengeIsOpen] = useState(false);
+  const [challengeToDelete, setChallengeToDelete] = useState<any>();
+  const [deleteChallengeButtonIsLoading, setDeleteChallengeButtonIsLoading] =
+    useState(false);
+  const [
+    unarchiveChallengeButtonIsLoading,
+    setUnarchiveChallengeButtonIsLoading,
+  ] = useState(false);
+  const [deleteChallengeIsOpen, setDeleteChallengeIsOpen] = useState(false);
 
   const handleRequirementChange = (key: string, value: any) => {
     setRequirements((prev) => {
@@ -298,6 +306,40 @@ export default function ChallengeManagement() {
     }
   };
 
+  const deleteChallengeHandler = async (challengeId: number) => {
+    setDeleteChallengeButtonIsLoading(true);
+    const response = await axios.post("/api/challenges/deleteChallenge", {
+      challengeId: challengeId,
+    });
+
+    if (response.status === 500) {
+      setDeleteChallengeButtonIsLoading(false);
+      return toast.error(response.data);
+    } else {
+      setDeleteChallengeButtonIsLoading(false);
+      setDeleteChallengeIsOpen(false);
+      setChallengeToDelete(undefined);
+      setAllChallenges();
+      return toast.success("Challenge archived successfully! 🗑️");
+    }
+  };
+
+  const unarchiveChallengeHandler = async (challengeId: number) => {
+    setUnarchiveChallengeButtonIsLoading(true);
+    const response = await axios.post("/api/challenges/unarchiveChallenge", {
+      challengeId: challengeId,
+    });
+
+    if (response.status === 500) {
+      setUnarchiveChallengeButtonIsLoading(false);
+      return toast.error(response.data);
+    } else {
+      setUnarchiveChallengeButtonIsLoading(false);
+      setAllChallenges();
+      return toast.success("Challenge unarchived successfully! 🎉");
+    }
+  };
+
   const setAllChallenges = async () => {
     let allChallenges = await getChallenges();
     allChallenges = allChallenges.sort((a: any, b: any) => {
@@ -407,7 +449,6 @@ export default function ChallengeManagement() {
                         mode="single"
                         selected={startTime}
                         onSelect={handleStartTimeSelect}
-                        initialFocus
                       />
                       <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x">
                         <ScrollArea className="w-64 sm:w-auto">
@@ -580,13 +621,14 @@ export default function ChallengeManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              {/* <div>
+              <div>
                 <Label>In same game</Label>
                 <Select
                   value={inSameGame ? "true" : "false"}
                   onValueChange={(value: string) => {
                     setInSameGame(value as unknown as boolean);
-                  }}>
+                  }}
+                >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="False" />
                   </SelectTrigger>
@@ -595,7 +637,7 @@ export default function ChallengeManagement() {
                     <SelectItem value="false">False</SelectItem>
                   </SelectContent>
                 </Select>
-              </div> */}
+              </div>
             </div>
             <div>
               <Label>Requirements</Label>
@@ -963,6 +1005,41 @@ export default function ChallengeManagement() {
         </Card>
       )}
 
+      <Dialog open={deleteChallengeIsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you absolutely sure?</DialogTitle>
+            <DialogDescription className="text-black">
+              This action can only be undone by an admin. This will archive the
+              challenge
+              <b> {challengeToDelete?.name}</b>.
+            </DialogDescription>
+            <div className="flex gap-4">
+              <Button
+                variant={"default"}
+                onClick={() => {
+                  setDeleteChallengeIsOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              {deleteChallengeButtonIsLoading ? (
+                <LoadingSpinner />
+              ) : (
+                <Button
+                  variant={"destructive"}
+                  onClick={() => {
+                    deleteChallengeHandler(challengeToDelete?.id);
+                  }}
+                >
+                  Confirm
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -1038,9 +1115,31 @@ export default function ChallengeManagement() {
                     >
                       Edit
                     </Button>
-                    <Button variant="destructive" size="sm">
-                      Remove
-                    </Button>
+                    {challenge.archived ? (
+                      <Button
+                        size="sm"
+                        className="mr-2"
+                        onClick={() => unarchiveChallengeHandler(challenge.id)}
+                        disabled={unarchiveChallengeButtonIsLoading}
+                      >
+                        {unarchiveChallengeButtonIsLoading ? (
+                          <LoadingSpinner />
+                        ) : (
+                          "Unarchive"
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setChallengeToDelete(challenge);
+                          setDeleteChallengeIsOpen(true);
+                        }}
+                      >
+                        Archive
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

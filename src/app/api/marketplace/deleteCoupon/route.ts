@@ -6,7 +6,7 @@ export async function POST(request: Request) {
 
   const response = await axios
     .get(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/marketplace/delete-coupon/${couponId}`
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/marketplace/items/${couponId}/archive`
     )
     .then((response) => {
       console.log("coupon deleted", response);

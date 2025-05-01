@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { Toaster } from "@/components/ui/sonner";
 import Providers from "@/components/providers";
+import { cookies } from "next/headers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -15,15 +16,16 @@ export const metadata: Metadata = {
   description: "Admin panel for managing gaming rewards platform",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const loggedIn = await cookies();
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Providers>
+        <Providers session={loggedIn.get("admin_session") as unknown as boolean}>
           <div className="flex flex-col h-screen bg-gray-100 lg:flex-row">
             <Sidebar />
             <div className="flex flex-col flex-1 overflow-hidden">

@@ -1,13 +1,10 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
 
-
 export async function POST(request: Request) {
   const { authId } = await request.json();
   const response = await axios
-    .post(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/users/suspend-user/${authId}`,
-    )
+    .get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/user/suspend-user/${authId}`)
     .then((response) => {
       console.log("suspended user", response);
       return response;

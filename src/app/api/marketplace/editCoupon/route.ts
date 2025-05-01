@@ -2,17 +2,19 @@ import axios from "axios";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
-  const { id, couponName, description, gameId, pointsToRedeem } =
+  const { id, itemName, description, gameId, pointsToRedeem } =
     await request.json();
 
   const response = await axios
     .post(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/marketplace/edit-coupon/${id}`,
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/marketplace/edit-item/${id}`,
       {
-        coupon_name: couponName,
-        game_id: gameId,
-        description: description,
-        points_to_redeem: pointsToRedeem,
+        itemName: itemName,
+        gameId: gameId,
+        extraDetails: {
+          description: description,
+          points_to_redeem: pointsToRedeem,
+        }
       }
     )
     .then((response) => {

@@ -6,31 +6,29 @@ import {
   LayoutDashboard,
   Users,
   ShoppingBag,
-  Package,
   Trophy,
   Medal,
   CreditCard,
-  BarChart,
   Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLoggedIn } from "@/context/userLoggedIn";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "User Management", href: "/users", icon: Users },
   { name: "Marketplace", href: "/marketplace", icon: ShoppingBag },
-  // { name: 'Inventory', href: '/inventory', icon: Package },
   { name: "Challenges", href: "/challenges", icon: Trophy },
   { name: "Leaderboard", href: "/leaderboard", icon: Medal },
   { name: "Subscriptions", href: "/subscriptions", icon: CreditCard },
-  // { name: 'Reports', href: '/reports', icon: BarChart },
 ];
 
 export function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
+  const { isLoggedIn } = useLoggedIn();
 
   return (
-    <>
+    <div className={`${!isLoggedIn ? "hidden" : "block"}`}>
       <Button
         variant="outline"
         className="fixed top-4 left-4 z-50 lg:hidden"
@@ -43,7 +41,7 @@ export function Sidebar() {
           isOpen ? "translate-x-0" : "-translate-x-full"
         } lg:relative lg:translate-x-0 transition duration-200 ease-in-out lg:flex lg:flex-col lg:justify-between`}
       >
-        <div className="flex flex-col h-full w-64 bg-white border-r overflow-y-auto">
+        <div className="flex flex-col h-[100vh] w-64 bg-white border-r overflow-y-auto">
           <div className="flex items-center justify-center h-16 border-b">
             <span className="text-2xl font-semibold">Admin Panel</span>
           </div>
@@ -64,6 +62,6 @@ export function Sidebar() {
           </nav>
         </div>
       </div>
-    </>
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import axios from "axios";
 import {
   Table,
@@ -48,28 +49,7 @@ import {
 import { getCoupons } from "@/hooks/get-marketplace";
 import { LoadingSpinner } from "@/components/loader";
 import { toast } from "sonner";
-import { Coupon } from "@/context/marketplace";
-
-// Mock marketplace items
-const items = [
-  {
-    id: 1,
-    name: "Sword of Power",
-    description: "A powerful sword",
-    price: 100,
-    game: "RPG Adventure",
-    stock: 50,
-  },
-  {
-    id: 2,
-    name: "Speed Boost",
-    description: "Increases speed",
-    price: 50,
-    game: "Racing Simulator",
-    stock: 100,
-  },
-  // Add more mock items as needed
-];
+import { Item } from "@/context/marketplace";
 
 export default function MarketplaceManagement() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -81,14 +61,18 @@ export default function MarketplaceManagement() {
   const [addNewCouponIsOpen, setAddNewCouponIsOpen] = useState(false);
   const [couponName, setCouponName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [numberOfInstances, setNumberOfInstances] = useState<number>(1);
+  const [couponCodes, setCouponCodes] = useState<string[]>([]);
   const [gameId, setGameId] = useState<string>("");
   const [addCouponButtonLoading, setAddCouponButtonLoading] = useState(false);
   const [pointsToRedeem, setPointsToRedeem] = useState<number>(10);
   const [deleteCouponIsOpen, setDeleteCouponIsOpen] = useState(false);
-  const [couponToDelete, setCouponToDelete] = useState<Coupon>();
-  const [deleteCouponButtonIsLoading, setDeleteCouponButtonLoading] =
+  const [couponToDelete, setCouponToDelete] = useState<Item>();
+  const [deleteCouponButtonIsLoading, setDeleteCouponButtonIsLoading] =
     useState(false);
-  const [couponToEdit, setCouponToEdit] = useState<Coupon>();
+  const [unarchiveCouponButtonIsLoading, setUnarchiveCouponButtonIsLoading] =
+    useState(false);
+  const [couponToEdit, setCouponToEdit] = useState<Item>();
   const [editCouponButtonIsLoading, setEditCouponButtonIsLoading] =
     useState(false);
   const [editCouponIsOpen, setEditCouponIsOpen] = useState(false);
@@ -159,6 +143,8 @@ export default function MarketplaceManagement() {
         description: description,
         gameId: gameId,
         pointsToRedeem: pointsToRedeem,
+        numberOfInstances: numberOfInstances,
+        couponCodes: couponCodes,
       });
 
       if (response.status === 500) {
@@ -171,13 +157,14 @@ export default function MarketplaceManagement() {
         setGameId("");
         setPointsToRedeem(0);
         setAddCouponButtonLoading(false);
+        setAllCoupons();
         return toast.success("Successfully added new coupon! 🔥");
       }
     }
   };
 
   const deleteCouponHandler = async (couponId: number) => {
-    setDeleteCouponButtonLoading(true);
+    setDeleteCouponButtonIsLoading(true);
     const response = await axios.post("/api/marketplace/deleteCoupon", {
       couponId: couponId,
     });
@@ -186,7 +173,10 @@ export default function MarketplaceManagement() {
       return toast.error(response.data);
     } else {
       console.log("delete coupon");
-      setDeleteCouponButtonLoading(false);
+      setDeleteCouponButtonIsLoading(false);
+      setDeleteCouponIsOpen(false);
+      setCouponToDelete(undefined);
+      setAllCoupons();
       return toast.success("Coupon deleted successfully! 🗑️");
     }
   };
@@ -200,7 +190,7 @@ export default function MarketplaceManagement() {
     } else {
       const response = await axios.post("/api/marketplace/editCoupon", {
         id: couponToEdit?.id,
-        couponName: couponName,
+        itemName: couponName,
         description: description,
         gameId: gameId,
         pointsToRedeem: pointsToRedeem,
@@ -215,43 +205,68 @@ export default function MarketplaceManagement() {
         setGameId("");
         setPointsToRedeem(0);
         setEditCouponButtonIsLoading(false);
+        setAllCoupons()
         return toast.success("Successfully updated coupon! 🔥");
       }
     }
   };
 
-  useEffect(() => {
-    const setAllCoupons = async () => {
-      let allCoupons = await getCoupons();
-      allCoupons = allCoupons.map((item: any, index: number) => {
-        return { ...item, rank: (index += 1) };
-      });
-      let arg_coupons: any = {};
-      if (allCoupons.length > 20) {
-        setNextPageDisabled(false);
-        let page = 1;
-        const chunkSize = 20;
-        for (let i = 0; i < allCoupons.length; i += chunkSize) {
-          const chunk = allCoupons.slice(i, i + chunkSize);
-          arg_coupons[page] = chunk;
-          page++;
-        }
-        console.log(arg_coupons);
-        setPaginatedCoupons(arg_coupons);
-      } else {
-        setNextPageDisabled(true);
-        setPaginatedCoupons({ 1: allCoupons });
+  const unarchiveCouponHandler = async (couponId: number) => {
+    setUnarchiveCouponButtonIsLoading(true);
+    const response = await axios.post("/api/marketplace/unarchiveCoupon", {
+      couponId: couponId,
+    });
+
+    if (response.status === 500) {
+      return toast.error(response.data);
+    } else {
+      setUnarchiveCouponButtonIsLoading(false);
+      setAllCoupons();
+      return toast.success("Coupon unarchived successfully! 🎉");
+    }
+  };
+
+  const setAllCoupons = async () => {
+    let allCoupons = await getCoupons();
+    allCoupons = allCoupons.map((item: any, index: number) => {
+      return { ...item, rank: (index += 1) };
+    });
+    let arg_coupons: any = {};
+    if (allCoupons.length > 20) {
+      setNextPageDisabled(false);
+      let page = 1;
+      const chunkSize = 20;
+      for (let i = 0; i < allCoupons.length; i += chunkSize) {
+        const chunk = allCoupons.slice(i, i + chunkSize);
+        arg_coupons[page] = chunk;
+        page++;
       }
-      setCoupons(allCoupons);
-    };
+      console.log(arg_coupons);
+      setPaginatedCoupons(arg_coupons);
+    } else {
+      setNextPageDisabled(true);
+      setPaginatedCoupons({ 1: allCoupons });
+    }
+    setCoupons(allCoupons);
+  };
+
+  useEffect(() => {
     setAllCoupons();
   }, []);
 
   const filteredItems = coupons.filter(
     (item: any) =>
-      item.coupon_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase())
+      item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.extraDetails.description
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
   );
+
+  const formatCouponCodes = (codes: string) => {
+    const formattedCodes = codes.split(",");
+    setCouponCodes(formattedCodes);
+    console.log("formatted codes", formattedCodes);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -337,6 +352,37 @@ export default function MarketplaceManagement() {
                   placeholder="Ex: 200"
                 />
               </div>
+              <div>
+                <Label htmlFor="nubmer-of-instances">Number of Coupons</Label>
+                <Input
+                  type="number"
+                  required={true}
+                  id="nubmer-of-instances"
+                  value={numberOfInstances}
+                  min={1}
+                  onChange={(e) => {
+                    let value: unknown = e.target.value;
+                    setNumberOfInstances(value as number);
+                  }}
+                  placeholder="Ex: 5"
+                />
+              </div>
+              <div>
+                <Label htmlFor="coupon-codes">Coupon Codes</Label>
+                <Input
+                  type="string"
+                  required={true}
+                  id="coupon-codes"
+                  value={couponCodes.join(",")}
+                  onChange={(e) => {
+                    if (e.target.value !== " ") {
+                      let value: unknown = e.target.value;
+                      formatCouponCodes(value as string);
+                    }
+                  }}
+                  placeholder="Ex: abc,xyz"
+                />
+              </div>
             </div>
           </CardContent>
           <CardFooter>
@@ -362,7 +408,7 @@ export default function MarketplaceManagement() {
       {editCouponIsOpen && (
         <Card className="w-1/3 absolute z-10 right-5">
           <CardHeader>
-            <CardTitle>Edit {couponToEdit?.coupon_name}</CardTitle>
+            <CardTitle>Edit {couponToEdit?.itemName}</CardTitle>
             <CardDescription>Enter new details of the coupon</CardDescription>
           </CardHeader>
           <CardContent>
@@ -372,7 +418,7 @@ export default function MarketplaceManagement() {
                 <Input
                   required={true}
                   id="coupon-name"
-                  defaultValue={couponToEdit?.coupon_name}
+                  defaultValue={couponToEdit?.itemName}
                   onChange={(e) => setCouponName(e.target.value)}
                   placeholder="CouponABC"
                 />
@@ -382,7 +428,7 @@ export default function MarketplaceManagement() {
                 <Input
                   required={true}
                   id="description"
-                  defaultValue={couponToEdit?.description}
+                  defaultValue={couponToEdit?.extraDetails.description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="A description...(optional)"
                 />
@@ -397,7 +443,7 @@ export default function MarketplaceManagement() {
                   <SelectTrigger className="w-[180px]">
                     <SelectValue
                       placeholder={
-                        games[couponToEdit?.game_id as keyof typeof games]
+                        games[couponToEdit?.gameId as keyof typeof games]
                       }
                     />
                   </SelectTrigger>
@@ -418,7 +464,7 @@ export default function MarketplaceManagement() {
                   type="number"
                   required={true}
                   id="points-to-redeem"
-                  defaultValue={couponToEdit?.points_to_redeem}
+                  defaultValue={couponToEdit?.extraDetails.points_to_redeem}
                   min={10}
                   onChange={(e) => {
                     let value: unknown = e.target.value;
@@ -454,9 +500,9 @@ export default function MarketplaceManagement() {
           <DialogHeader>
             <DialogTitle>Are you absolutely sure?</DialogTitle>
             <DialogDescription className="text-black">
-              This action cannot be undone. This will permanently delete the
+              This action can only be undone by an admin. This will archive the
               coupon
-              <b> {couponToDelete?.coupon_name}</b>.
+              <b> {couponToDelete?.itemName}</b>.
             </DialogDescription>
             <div className="flex gap-4">
               <Button
@@ -473,7 +519,7 @@ export default function MarketplaceManagement() {
                 <Button
                   variant={"destructive"}
                   onClick={() => {
-                    deleteCouponHandler(couponToDelete?.coupon_id as number);
+                    deleteCouponHandler(couponToDelete?.id as number);
                   }}
                 >
                   Confirm
@@ -491,19 +537,35 @@ export default function MarketplaceManagement() {
             <TableHead>Description</TableHead>
             <TableHead>Game</TableHead>
             <TableHead>Points to redeem</TableHead>
+            <TableHead>Number of coupons</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {searchTerm !== "" &&
-            filteredItems.map((item: any) => (
+            filteredItems.map((item: Item) => (
               <TableRow key={item.id}>
-                <TableCell>{item.coupon_name}</TableCell>
-                <TableCell>{item.description}</TableCell>
+                <TableCell>{item.itemName}</TableCell>
+                <TableCell>{item.extraDetails.description}</TableCell>
                 <TableCell>
-                  {games[item.game_id as keyof typeof games] || "Undefined"}
+                  {games[item.gameId as keyof typeof games] || "Undefined"}
                 </TableCell>
-                <TableCell>{item.points_to_redeem}</TableCell>
+                <TableCell>{item.extraDetails.points_to_redeem}</TableCell>
+                <TableCell>
+                  {item.extraDetails.number_of_coupons || 1}
+                </TableCell>
+                <TableCell>
+                  {item.archived ? (
+                    <Badge className="text-red-500 bg-white hover:bg-white">
+                      Archived
+                    </Badge>
+                  ) : (
+                    <Badge className="text-green-500 bg-white hover:bg-white">
+                      Active
+                    </Badge>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Button
                     variant="outline"
@@ -511,38 +573,67 @@ export default function MarketplaceManagement() {
                     className="mr-2"
                     onClick={() => {
                       setCouponToEdit(item);
-                      setCouponName(item.coupon_name);
-                      setDescription(item.description);
-                      setPointsToRedeem(item.points_to_redeem);
-                      setGameId(item.game_id);
+                      setCouponName(item.itemName);
+                      setDescription(item.extraDetails.description);
+                      setPointsToRedeem(item.extraDetails.points_to_redeem);
+                      setGameId(item.gameId as unknown as string);
                       setEditCouponIsOpen(true);
                     }}
                   >
                     Edit
                   </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      setCouponToDelete(item);
-                      setDeleteCouponIsOpen(true);
-                    }}
-                  >
-                    Remove
-                  </Button>
+                  {item.archived ? (
+                    <Button
+                      size="sm"
+                      className="mr-2"
+                      onClick={() => unarchiveCouponHandler(item.id)}
+                      disabled={unarchiveCouponButtonIsLoading}
+                    >
+                      {unarchiveCouponButtonIsLoading ? (
+                        <LoadingSpinner />
+                      ) : (
+                        "Unarchive"
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        setCouponToDelete(item);
+                        setDeleteCouponIsOpen(true);
+                      }}
+                    >
+                      Archive
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
           {searchTerm === "" &&
             Object.keys(paginatedCoupons).length >= 1 &&
-            paginatedCouponsProvider().map((item: any) => (
+            paginatedCouponsProvider().map((item: Item) => (
               <TableRow key={item.id}>
-                <TableCell>{item.coupon_name}</TableCell>
-                <TableCell>{item.description}</TableCell>
+                <TableCell>{item.itemName}</TableCell>
+                <TableCell>{item.extraDetails.description}</TableCell>
                 <TableCell>
-                  {games[item.game_id as keyof typeof games] || "Undefined"}
+                  {games[item.gameId as keyof typeof games] || "Undefined"}
                 </TableCell>
-                <TableCell>{item.points_to_redeem}</TableCell>
+                <TableCell>{item.extraDetails.points_to_redeem}</TableCell>
+                <TableCell>
+                  {item.extraDetails.number_of_coupons || 1}
+                </TableCell>
+                <TableCell>
+                  {item.archived ? (
+                    <Badge className="text-red-500 bg-white hover:bg-white">
+                      Archived
+                    </Badge>
+                  ) : (
+                    <Badge className="text-green-500 bg-white hover:bg-white">
+                      Active
+                    </Badge>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Button
                     variant="outline"
@@ -550,25 +641,40 @@ export default function MarketplaceManagement() {
                     className="mr-2"
                     onClick={() => {
                       setCouponToEdit(item);
-                      setCouponName(item.coupon_name);
-                      setDescription(item.description);
-                      setPointsToRedeem(item.points_to_redeem);
-                      setGameId(item.game_id);
+                      setCouponName(item.itemName);
+                      setDescription(item.extraDetails.description);
+                      setPointsToRedeem(item.extraDetails.points_to_redeem);
+                      setGameId(item.gameId as unknown as string);
                       setEditCouponIsOpen(true);
                     }}
                   >
                     Edit
                   </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      setCouponToDelete(item);
-                      setDeleteCouponIsOpen(true);
-                    }}
-                  >
-                    Remove
-                  </Button>
+                  {item.archived ? (
+                    <Button
+                      size="sm"
+                      className="mr-2"
+                      onClick={() => unarchiveCouponHandler(item.id)}
+                      disabled={unarchiveCouponButtonIsLoading}
+                    >
+                      {unarchiveCouponButtonIsLoading ? (
+                        <LoadingSpinner />
+                      ) : (
+                        "Unarchive"
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        setCouponToDelete(item);
+                        setDeleteCouponIsOpen(true);
+                      }}
+                    >
+                      Archive
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

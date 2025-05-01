@@ -221,7 +221,6 @@ export default function LeaderboardManagement() {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full bg-white sm:w-64"
         />
-        <Button>Reset Leaderboard</Button>
       </div>
 
       <Dialog open={deleteUserIsOpen}>

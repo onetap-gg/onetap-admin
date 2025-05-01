@@ -13,12 +13,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/loader";
+import { useLoggedIn } from "@/context/userLoggedIn";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [action, setAction    ] = useState("Logging in...");
+  const { setIsLoggedIn } = useLoggedIn();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,13 +30,15 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/login", {
+      const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
 
-      if (response.ok) {
+      if (res.ok) {
+        setIsLoggedIn(true);
+        setAction("Redirecting...")
         router.push("/");
       } else {
         setError("Invalid username or password");
@@ -83,7 +88,7 @@ export default function LoginPage() {
                 {isLoading ? (
                   <div className="flex items-center gap-2">
                     <LoadingSpinner />
-                    <span>Logging in...</span>
+                    <span>{action}</span>
                   </div>
                 ) : (
                   "Login"
