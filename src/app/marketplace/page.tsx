@@ -157,7 +157,7 @@ export default function MarketplaceManagement() {
         setGameId("");
         setPointsToRedeem(0);
         setAddCouponButtonLoading(false);
-        setAllCoupons();
+        // setAllCoupons();
         return toast.success("Successfully added new coupon! 🔥");
       }
     }
@@ -205,7 +205,7 @@ export default function MarketplaceManagement() {
         setGameId("");
         setPointsToRedeem(0);
         setEditCouponButtonIsLoading(false);
-        setAllCoupons()
+        setAllCoupons();
         return toast.success("Successfully updated coupon! 🔥");
       }
     }

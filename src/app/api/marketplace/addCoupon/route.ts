@@ -2,17 +2,30 @@ import axios from "axios";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
-  const { couponName, description, gameId, pointsToRedeem } =
-    await request.json();
+  const {
+    couponName,
+    description,
+    gameId,
+    pointsToRedeem,
+    numberOfInstances,
+    couponCodes,
+  } = await request.json();
+
+  console.log(couponName,
+    description,
+    Number(gameId),
+    pointsToRedeem,
+    Number(numberOfInstances),
+    couponCodes,);
 
   const response = await axios
     .post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/marketplace/set-coupons`, {
-      coupon: {
-        coupon_name: couponName,
-        game_id: gameId,
-        description: description,
-        points_to_redeem: pointsToRedeem,
-      },
+      coupon_name: couponName,
+      game_id: Number(gameId),
+      description: description,
+      points_to_redeem: pointsToRedeem,
+      number_of_instances: Number(numberOfInstances) || 1,
+      coupon_codes: couponCodes,
     })
     .then((response) => {
       console.log("coupon set", response);
